@@ -100,8 +100,9 @@ without the network.
 - Credentials for the inference backend. Classification runs on
   [TypeSafe](https://docs.typesafe.ai)'s Jev model, so you need a TypeSafe API key from
   [console.typesafe.ai](https://console.typesafe.ai/), in `TYPESAFE_API_KEY` or in a `.env` file in
-  the directory the server runs from. The key stays server-side: it is never passed over MCP, so
-  clients can neither supply nor read it.
+  the directory the server runs from (that directory only — parent directories are not searched).
+  Only the key is read from the file; nothing else in it is loaded. The key stays server-side: it is
+  never passed over MCP, so clients can neither supply nor read it.
 
 ## Running
 

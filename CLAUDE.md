@@ -53,9 +53,14 @@ code comments — those say "the inference backend" or "the model". SDK imports 
 
 **An MCP client strips the environment.** The server subprocess receives only `HOME`, `LOGNAME`,
 `PATH`, `SHELL`, `TERM`, `USER` — a key exported in the user's shell never arrives. `resolve_api_key`
-therefore falls back to a `.env` found with `usecwd=True`, anchored to the working directory the
-client was told to use. Unit tests cannot see a regression here; `test_live.py` covers it end to end
-through a real client session.
+therefore falls back to a `.env` in the working directory the client was told to use. Unit tests
+cannot see a regression here; `test_live.py` covers it end to end through a real client session.
+
+**The environment is trusted, a `.env` file is not.** Read the key out of the file with
+`dotenv_values`; never `load_dotenv` it. Loading would let any line in the file take effect on this
+process, and both the SDK (`TYPESAFE_BASE_URL`) and httpx (`HTTPS_PROXY`, `SSL_CERT_FILE`) resolve
+from the environment — one planted line redirects the API key and every classified statement to
+another host. For the same reason the search does not walk up to parent directories.
 
 **Level numbering differs between the contract and the backend.** `ScoreResult.level` is 1-based;
 the backend's levels are 0-based. `classifiers.score` also returns the *most probable* level rather
