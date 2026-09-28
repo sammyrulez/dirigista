@@ -1,0 +1,26 @@
+name: tests
+
+on:
+  push:
+  pull_request:
+
+# The live suite is deselected by default and no key is available here, so this
+# job never reaches the paid API. Read-only credentials keep it that way.
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: astral-sh/setup-uv@v10
+        with:
+          enable-cache: true
+
+      # --locked fails rather than silently resolving something else: CI must
+      # test the dependency set the lockfile pins.
+      - run: uv sync --locked
+
+      - run: uv run pytest
