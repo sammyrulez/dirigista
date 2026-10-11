@@ -171,18 +171,21 @@ traced over OTLP/HTTP to that collector:
 ```json
 "env": {
   "TYPESAFE_API_KEY": "your-key",
-  "OTEL_EXPORTER_OTLP_ENDPOINT": "http://localhost:4318"
+  "OTEL_EXPORTER_OTLP_ENDPOINT": "https://collector.example.com",
+  "OTEL_BEARER_TOKEN": "your-collector-token"
 }
 ```
 
-The other standard `OTEL_*` variables apply too, e.g. `OTEL_EXPORTER_OTLP_HEADERS` for a hosted
-backend that needs a token. Each call yields the MCP SDK's `tools/call <tool>` span with a
+`OTEL_BEARER_TOKEN` is optional; when set it is sent as `Authorization: Bearer …`. Like the API key
+it may also live in the project's `.env`. The other standard `OTEL_*` variables apply too, e.g.
+`OTEL_EXPORTER_OTLP_HEADERS` for extra headers. Each call yields the MCP SDK's `tools/call <tool>` span with a
 `classify <tool>` child carrying input sizes (statement length, number of categories or criteria),
 the verdict or level, the confidence, and the error type on failure.
 
 **Spans never contain what you classify**: no statement, context, category or criterion text, and
 no exception messages, which can quote the input back. Tracing is switched on only by the real
-environment — an endpoint in a `.env` file is ignored, so the file cannot redirect anything.
+environment — an endpoint in a `.env` file is ignored, so the file cannot redirect anything, the
+token included.
 
 ## Tests
 

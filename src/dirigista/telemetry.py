@@ -18,6 +18,8 @@ from opentelemetry.sdk.trace.export import BatchSpanProcessor
 from opentelemetry.trace import Span, StatusCode
 from opentelemetry.util.types import AttributeValue
 
+from .client import resolve_otel_token
+
 ENDPOINT_ENV = "OTEL_EXPORTER_OTLP_ENDPOINT"
 
 # Until a provider is installed this is a no-op tracer, so the tools can open
@@ -32,6 +34,10 @@ def build_provider() -> TracerProvider | None:
     loaded (see `client.resolve_api_key`), so a planted line there can neither
     enable tracing nor point it at another host. The exporter reads the rest of
     the standard OTEL_* variables, headers included, from the same environment.
+
+    OTEL_BEARER_TOKEN, when set, becomes the Authorization header on top of any
+    OTEL_EXPORTER_OTLP_HEADERS. Unlike the endpoint it may come from .env: it
+    is a secret, and the endpoint it is sent to is still the environment's.
     """
     if not os.environ.get(ENDPOINT_ENV):
         return None
@@ -45,7 +51,9 @@ def build_provider() -> TracerProvider | None:
             {"service.name": "dirigista", "service.version": version("dirigista")}
         )
     )
-    provider.add_span_processor(BatchSpanProcessor(OTLPSpanExporter()))
+    token = resolve_otel_token()
+    headers = {"authorization": f"Bearer {token}"} if token else None
+    provider.add_span_processor(BatchSpanProcessor(OTLPSpanExporter(headers=headers)))
     return provider
 
 

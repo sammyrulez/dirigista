@@ -5,7 +5,9 @@ more place data ends up stored, so the text being classified must never reach a
 span — not as an attribute, not in an error.
 """
 
+import threading
 from contextlib import asynccontextmanager
+from http.server import BaseHTTPRequestHandler, HTTPServer
 
 import pytest
 from opentelemetry import trace
@@ -103,6 +105,77 @@ def test_an_endpoint_in_a_dotenv_file_does_not(tmp_path, monkeypatch):
     monkeypatch.chdir(tmp_path)
 
     assert telemetry.build_provider() is None
+
+
+# --- authenticating to the collector ---------------------------------------
+
+
+@pytest.fixture
+def collector(tmp_path, monkeypatch):
+    """A local OTLP endpoint recording the headers of each export it receives."""
+    received: list[dict[str, str]] = []
+
+    class Handler(BaseHTTPRequestHandler):
+        def do_POST(self):
+            self.rfile.read(int(self.headers["Content-Length"]))
+            received.append({k.lower(): v for k, v in self.headers.items()})
+            self.send_response(200)
+            self.end_headers()
+
+        def log_message(self, *args):
+            pass
+
+    httpd = HTTPServer(("127.0.0.1", 0), Handler)
+    threading.Thread(
+        target=httpd.serve_forever, kwargs={"poll_interval": 0.01}, daemon=True
+    ).start()
+    monkeypatch.setenv(
+        "OTEL_EXPORTER_OTLP_ENDPOINT", f"http://127.0.0.1:{httpd.server_port}"
+    )
+    # Neither the developer's shell nor the project's .env may leak in.
+    for name in ("OTEL_BEARER_TOKEN", "OTEL_EXPORTER_OTLP_HEADERS"):
+        monkeypatch.delenv(name, raising=False)
+    monkeypatch.chdir(tmp_path)
+
+    def export_one_span() -> dict[str, str]:
+        provider = telemetry.build_provider()
+        provider.get_tracer("test").start_span("probe").end()
+        provider.shutdown()
+        (headers,) = received
+        return headers
+
+    yield export_one_span
+    httpd.shutdown()
+
+
+def test_without_a_token_no_authorization_is_sent(collector):
+    assert "authorization" not in collector()
+
+
+def test_a_token_in_the_environment_is_sent_as_a_bearer_header(
+    collector, monkeypatch
+):
+    monkeypatch.setenv("OTEL_BEARER_TOKEN", "token-from-env")
+
+    assert collector()["authorization"] == "Bearer token-from-env"
+
+
+def test_a_token_in_a_dotenv_file_is_sent_too(collector, tmp_path):
+    (tmp_path / ".env").write_text("OTEL_BEARER_TOKEN=token-from-dotenv\n")
+
+    assert collector()["authorization"] == "Bearer token-from-dotenv"
+
+
+def test_the_token_adds_to_the_standard_headers_instead_of_replacing_them(
+    collector, monkeypatch
+):
+    monkeypatch.setenv("OTEL_EXPORTER_OTLP_HEADERS", "x-team=search")
+    monkeypatch.setenv("OTEL_BEARER_TOKEN", "t")
+
+    headers = collector()
+
+    assert headers["x-team"] == "search"
+    assert headers["authorization"] == "Bearer t"
 
 
 # --- what a span records ----------------------------------------------------

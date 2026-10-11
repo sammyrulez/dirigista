@@ -67,6 +67,8 @@ another host. For the same reason the search does not walk up to parent director
 levels and confidences — not statements, contexts, categories, criteria or the chosen category, and
 not exception messages (`record_exception=False`; only `error.type`). It turns on solely when
 `OTEL_EXPORTER_OTLP_ENDPOINT` is in the real environment, for the same reason as above.
+`OTEL_BEARER_TOKEN` is the exception that may come from `.env` (via `client.resolve_otel_token`):
+it is a secret, not a destination, and the endpoint it goes to is still the environment's.
 `test_telemetry.py` guards both; extend its leak test when adding an attribute.
 
 **Level numbering differs between the contract and the backend.** `ScoreResult.level` is 1-based;
