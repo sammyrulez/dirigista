@@ -1,0 +1,37 @@
+{
+  "manifest_version": "0.4",
+  "name": "dirigista",
+  "display_name": "Dirigista",
+  "version": "0.1.0",
+  "description": "Semantic classification tools: verify, categorize and score a statement, with calibrated probabilities.",
+  "author": { "name": "Sam", "url": "https://github.com/sammyrulez" },
+  "repository": { "type": "git", "url": "https://github.com/sammyrulez/dirigista" },
+  "server": {
+    "type": "uv",
+    "entry_point": "src/dirigista/__main__.py",
+    "mcp_config": {
+      "command": "uv",
+      "args": ["run", "--directory", "${__dirname}", "dirigista"],
+      "env": { "TYPESAFE_API_KEY": "${user_config.typesafe_api_key}" }
+    }
+  },
+  "user_config": {
+    "typesafe_api_key": {
+      "type": "string",
+      "title": "TypeSafe API key",
+      "description": "Key for the inference backend, from console.typesafe.ai.",
+      "sensitive": true,
+      "required": true
+    }
+  },
+  "tools": [
+    { "name": "verify", "description": "True, false or uncertain for a statement, with its probability." },
+    { "name": "categorize", "description": "Pick the best category from a list, with the full distribution." },
+    { "name": "score", "description": "Rate a statement on an ordered scale of criteria." }
+  ],
+  "compatibility": {
+    "platforms": ["darwin", "linux", "win32"],
+    "runtimes": { "python": ">=3.12" }
+  },
+  "keywords": ["classification", "triage", "routing"]
+}

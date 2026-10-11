@@ -104,7 +104,39 @@ without the network.
   Only the key is read from the file; nothing else in it is loaded. The key stays server-side: it is
   never passed over MCP, so clients can neither supply nor read it.
 
-## Running
+## Install
+
+No clone needed. With [uv](https://docs.astral.sh/uv/) installed, one command registers the server
+in Claude Code:
+
+```sh
+claude mcp add dirigista -e TYPESAFE_API_KEY=your-key -- \
+  uvx --from git+https://github.com/sammyrulez/dirigista dirigista
+```
+
+For any other MCP client (Claude Desktop, Cursor, …) add this to its config file:
+
+```json
+{
+  "mcpServers": {
+    "dirigista": {
+      "command": "uvx",
+      "args": ["--from", "git+https://github.com/sammyrulez/dirigista", "dirigista"],
+      "env": { "TYPESAFE_API_KEY": "your-key" }
+    }
+  }
+}
+```
+
+**Claude Desktop, without touching JSON:** download `dirigista.mcpb` from the
+[latest release](https://github.com/sammyrulez/dirigista/releases/latest) and open it. Claude Desktop
+asks for the API key in a dialog and keeps it in the system keychain. Build the file yourself with
+`./scripts/build-mcpb.sh` (output in `dist/`; needs Node for `npx`).
+
+Pass the key through `env`, as above: a server started this way has no project directory, so there
+is no `.env` to find. Pin a release with `git+https://github.com/sammyrulez/dirigista@<tag>`.
+
+## Running from a checkout
 
 ```sh
 uv run python -m dirigista

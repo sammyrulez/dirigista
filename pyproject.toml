@@ -10,6 +10,9 @@ dependencies = [
     "typesafe-sdk>=0.7.2",
 ]
 
+[project.scripts]
+dirigista = "dirigista.__main__:main"
+
 [dependency-groups]
 dev = [
     "pytest>=9.1.1",
