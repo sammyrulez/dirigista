@@ -2,7 +2,7 @@
   "manifest_version": "0.4",
   "name": "dirigista",
   "display_name": "Dirigista",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Semantic classification tools: verify, categorize and score a statement, with calibrated probabilities.",
   "author": { "name": "Sam", "url": "https://github.com/sammyrulez" },
   "repository": { "type": "git", "url": "https://github.com/sammyrulez/dirigista" },

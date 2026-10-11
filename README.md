@@ -79,12 +79,14 @@ src/dirigista/
   classifiers.py     # builds the model questions, converts answers (no MCP knowledge)
   client.py          # constructs the inference client, resolves the API key
   server.py          # MCPServer instance, thin adapter over classifiers
+  telemetry.py       # opt-in OpenTelemetry tracing, metadata only
   __main__.py        # stdio entrypoint
 tests/
   test_classifiers.py # answer-to-result conversion, against a fake client
   test_client.py      # API key resolution
   test_server.py      # tool registration and schema contracts
   test_stdio.py       # end-to-end handshake with a real MCP client
+  test_telemetry.py   # tracing switch, and that caller text never reaches a span
   test_live.py        # opt-in, hits the real API
 ```
 
@@ -160,6 +162,27 @@ in your shell does *not* reach it. Either keep a `.env` in the project directory
   }
 }
 ```
+
+## Telemetry
+
+Off by default. Set `OTEL_EXPORTER_OTLP_ENDPOINT` in the client's `env` and every tool call is
+traced over OTLP/HTTP to that collector:
+
+```json
+"env": {
+  "TYPESAFE_API_KEY": "your-key",
+  "OTEL_EXPORTER_OTLP_ENDPOINT": "http://localhost:4318"
+}
+```
+
+The other standard `OTEL_*` variables apply too, e.g. `OTEL_EXPORTER_OTLP_HEADERS` for a hosted
+backend that needs a token. Each call yields the MCP SDK's `tools/call <tool>` span with a
+`classify <tool>` child carrying input sizes (statement length, number of categories or criteria),
+the verdict or level, the confidence, and the error type on failure.
+
+**Spans never contain what you classify**: no statement, context, category or criterion text, and
+no exception messages, which can quote the input back. Tracing is switched on only by the real
+environment — an endpoint in a `.env` file is ignored, so the file cannot redirect anything.
 
 ## Tests
 

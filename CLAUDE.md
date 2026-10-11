@@ -26,6 +26,7 @@ An MCP server exposing three classification tools. One direction of dependency:
 server.py  → classifiers.py → client.py
 (MCP only)   (logic only)     (credentials only)
              models.py (contracts, shared)
+telemetry.py (spans; used by server.py only)
 ```
 
 - **`server.py`** registers the tools and holds no logic: validate, open a client, delegate,
@@ -61,6 +62,12 @@ cannot see a regression here; `test_live.py` covers it end to end through a real
 process, and both the SDK (`TYPESAFE_BASE_URL`) and httpx (`HTTPS_PROXY`, `SSL_CERT_FILE`) resolve
 from the environment — one planted line redirects the API key and every classified statement to
 another host. For the same reason the search does not walk up to parent directories.
+
+**Spans carry metadata, never caller text.** Tracing (`telemetry.py`) records sizes, verdicts,
+levels and confidences — not statements, contexts, categories, criteria or the chosen category, and
+not exception messages (`record_exception=False`; only `error.type`). It turns on solely when
+`OTEL_EXPORTER_OTLP_ENDPOINT` is in the real environment, for the same reason as above.
+`test_telemetry.py` guards both; extend its leak test when adding an attribute.
 
 **Level numbering differs between the contract and the backend.** `ScoreResult.level` is 1-based;
 the backend's levels are 0-based. `classifiers.score` also returns the *most probable* level rather

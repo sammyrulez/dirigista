@@ -9,6 +9,7 @@ from mcp.server.mcpserver import MCPServer
 from . import classifiers
 from .client import inference_client
 from .models import CategorizeResult, ScoreResult, VerifyResult
+from .telemetry import tool_span
 
 mcp = MCPServer(
     name="dirigista",
@@ -37,14 +38,28 @@ async def verify(
     judge against a specific source instead of general knowledge. Move the
     thresholds when a false positive and a false negative cost you differently.
     """
-    async with inference_client() as client:
-        return await classifiers.verify(
-            statement,
-            context,
-            client=client,
-            false_below=false_below,
-            true_above=true_above,
+    with tool_span(
+        "verify",
+        {
+            "dirigista.statement.length": len(statement),
+            "dirigista.context.present": context is not None,
+        },
+    ) as span:
+        async with inference_client() as client:
+            result = await classifiers.verify(
+                statement,
+                context,
+                client=client,
+                false_below=false_below,
+                true_above=true_above,
+            )
+        span.set_attributes(
+            {
+                "dirigista.verdict": result.verdict,
+                "dirigista.probability": result.probability,
+            }
         )
+        return result
 
 
 @mcp.tool()
@@ -56,8 +71,18 @@ async def categorize(statement: str, categories: list[str]) -> CategorizeResult:
     beat terse codes, and an option you do not offer cannot be chosen — add
     "none of the above" if your list may not cover everything.
     """
-    async with inference_client() as client:
-        return await classifiers.categorize(statement, categories, client=client)
+    with tool_span(
+        "categorize",
+        {
+            "dirigista.statement.length": len(statement),
+            "dirigista.categories.count": len(categories),
+        },
+    ) as span:
+        async with inference_client() as client:
+            result = await classifiers.categorize(statement, categories, client=client)
+        # The confidence only: the chosen category is one of the caller's strings.
+        span.set_attribute("dirigista.confidence", result.confidence)
+        return result
 
 
 @mcp.tool()
@@ -70,5 +95,16 @@ async def score(statement: str, criteria: list[str]) -> ScoreResult:
     civil", "Very angry, strong language"]. Concrete descriptions rate far more
     reliably than bare "low"/"medium"/"high".
     """
-    async with inference_client() as client:
-        return await classifiers.score(statement, criteria, client=client)
+    with tool_span(
+        "score",
+        {
+            "dirigista.statement.length": len(statement),
+            "dirigista.criteria.count": len(criteria),
+        },
+    ) as span:
+        async with inference_client() as client:
+            result = await classifiers.score(statement, criteria, client=client)
+        span.set_attributes(
+            {"dirigista.level": result.level, "dirigista.confidence": result.confidence}
+        )
+        return result

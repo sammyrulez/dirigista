@@ -1,11 +1,14 @@
 [project]
 name = "dirigista"
-version = "0.1.0"
+version = "0.2.0"
 description = "MCP server exposing semantic classification tools"
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
     "mcp[cli]>=2.2.0",
+    "opentelemetry-api>=1.45.0",
+    "opentelemetry-exporter-otlp-proto-http>=1.45.0",
+    "opentelemetry-sdk>=1.45.0",
     "python-dotenv>=1.2.3",
     "typesafe-sdk>=0.7.2",
 ]
